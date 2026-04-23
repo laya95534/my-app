@@ -4,8 +4,13 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useRouter } from 'next/navigation'
 
+type Task = {
+  id: number
+  title: string
+}
+
 export default function Dashboard() {
-  const [tasks, setTasks] = useState([])
+  const [tasks, setTasks] = useState<Task[]>([])
   const [title, setTitle] = useState('')
   const router = useRouter()
 
@@ -14,20 +19,38 @@ export default function Dashboard() {
   }, [])
 
   async function fetchTasks() {
-    const { data } = await supabase.from('tasks').select('*')
+    const { data, error } = await supabase.from('tasks').select('*')
+
+    if (error) {
+      console.error(error)
+      return
+    }
+
     setTasks(data || [])
   }
 
   const addTask = async () => {
-    if (!title) return
+    if (!title.trim()) return
 
-    await supabase.from('tasks').insert([{ title }])
+    const { error } = await supabase.from('tasks').insert([{ title }])
+
+    if (error) {
+      alert(error.message)
+      return
+    }
+
     setTitle('')
     fetchTasks()
   }
 
-  const deleteTask = async (id) => {
-    await supabase.from('tasks').delete().eq('id', id)
+  const deleteTask = async (id: number) => {
+    const { error } = await supabase.from('tasks').delete().eq('id', id)
+
+    if (error) {
+      alert(error.message)
+      return
+    }
+
     fetchTasks()
   }
 
@@ -51,7 +74,7 @@ export default function Dashboard() {
       {/* Add Task */}
       <div className="mb-4 flex gap-2">
         <input
-          className="border p-2 flex-1"
+          className="border p-2 flex-1 rounded"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Enter task"
